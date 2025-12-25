@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <title>HiFi-Glot</title>
+  <script src="./static/tailwind.js"></script>
+  <script src="./static/vue.global.js"></script>
+  <script src="./static/flowbite.min.js"></script>
+  <script src="./static/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style type="text/tailwindcss">
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+
+    @layer base {
+      a[href^="http"] {
+        @apply text-blue-500;
+      }
+
+      a:hover {
+        @apply text-blue-700 underline;
+      }
+
+      h1 {
+        @apply mb-6 text-4xl font-bold text-gray-900 text-center;
+      }
+
+      h2 {
+        @apply mb-3 pt-4 text-2xl font-bold tracking-tight text-gray-900;
+      }
+
+      h4 {
+        @apply mb-4 pt-12 text-3xl font-semibold text-gray-900;
+      }
+
+      h5 {
+        @apply mb-3 pt-4 text-2xl font-bold tracking-tight text-gray-900;
+      }
+
+      p {
+        @apply mb-4 font-normal text-gray-900 leading-relaxed;
+      }
+    }
+
+    @layer components {
+      .list-select {
+        @apply block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0;
+      }
+
+      .tooltip {
+        position: absolute;
+        text-align: center;
+        padding: 8px;
+        font: 12px sans-serif;
+        background: lightsteelblue;
+        border: 0;
+        border-radius: 8px;
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .text-p {
+        @apply mb-4 font-normal text-gray-900 leading-relaxed;
+      }
+
+      .author {
+        @apply font-medium mr-2 pb-1 text-gray-900 inline-block text-base;
+      }
+
+      .author a {
+        @apply text-gray-900;
+      }
+
+      .affiliation a {
+        @apply text-gray-900;
+      }
+
+      .affiliation {
+        @apply font-medium mr-2 pb-1 text-gray-900 block text-base;
+      }
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {}
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .black_overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.93);
+      z-index: 100;
+    }
+
+    .enlargeContainer {
+      display: none;
+    }
+
+    .enlargePreviewImg {
+      /*这里我设置的是：预览后放大的图片相对于整个页面定位*/
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+
+      /*宽度设置为页面宽度的70%，高度自适应*/
+      width: 70%;
+      z-index: 200;
+    }
+
+    /*关闭预览*/
+    .close {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      z-index: 200;
+    }
+  </style>
+
+  <style>
+    /* 基础容器样式 */
+    .notion-callout {
+      display: flex;
+      /* 开启Flex布局 */
+      align-items: flex-start;
+      /* 图标和文字顶部对齐（如果文字很多） */
+      background-color: #F1F1EF;
+      /* Notion经典的浅灰色背景 */
+      padding: 16px 16px;
+      /* 内边距 */
+      border-radius: 4px;
+      /* 圆角 */
+      margin-bottom: 16px;
+      /* 块与块的间距 */
+      color: #37352f;
+      /* 字体颜色 */
+      font-family: sans-serif;
+      /* 字体 */
+      line-height: 1.5;
+      /* 行高 */
+    }
+
+    /* 图标样式 */
+    .notion-callout-icon {
+      margin-right: 12px;
+      /* 图标和文字的间距 */
+      font-size: 24px;
+      /* 图标大小 */
+      line-height: 1;
+      /* 防止图标撑高行高 */
+      user-select: none;
+      /* 防止图标被选中复制 */
+    }
+
+    /* 文字区域样式 */
+    .notion-callout-text {
+      word-break: break-word;
+      /* 防止长单词溢出 */
+    }
+
+    /* 红色背景/警告 */
+    .notion-callout.warning {
+      background-color: #FBE4E4;
+    }
+
+    /* 蓝色背景/信息 */
+    .notion-callout.info {
+      background-color: #E6F3F7;
+    }
+  </style>
+
+</head>
+
+<!--黑色遮罩-->
+<div class="black_overlay" id="black_overlay"></div>
+
+<!--预览容器，存放点击放大后的图片-->
+<div class="enlargeContainer" id="enlargeContainer">
+  <!-- 关闭按钮，一个叉号图片 -->
+  <img src="static/cross.png" class="close" id="close">
+</div>
+
+<body>
+  <div id="app">
+
+    <nav class="bg-white fixed w-full z-20 top-0 start-0 border-gray-200 border-b border-gray-200"
+      style="font-weight: bold;">
+      <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
+        <button data-collapse-toggle="navbar-default" type="button"
+          class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+          aria-controls="navbar-default" aria-expanded="false">
+          <span class="sr-only">Open main menu</span>
+          <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M1 1h15M1 7h15M1 13h15" />
+          </svg>
+        </button>
+
+        <div class="hidden w-full md:block md:w-auto ml-auto" id="navbar-default">
+          <ul
+            class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white">
+            <li>
+              <a href="#home" class="list-select"><b>Home</b></a>
+            </li>
+            <li>
+              <a href="#hifiglot-methodology" class="list-select"><b>Methodology</b></a>
+            </li>
+            <li>
+              <a href="#hifiglot-objective" class="list-select"><b>Speech Parameter Manipulation</b></a>
+            </li>
+            <li>
+              <a href="#hifiglot-subjective" class="list-select"><b>Vocal Tract Length Simulation</b></a>
+            </li>
+            <li>
+              <a href="https://github.com/VocodexElysium/HiFi-Glot" class="list-select" target="_blank">
+                <svg class="w-6 h-6 text-gray-900 hover:text-blue-700" aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                  <path fill-rule="evenodd"
+                    d="M12.006 2a9.847 9.847 0 0 0-6.484 2.44 10.32 10.32 0 0 0-3.393 6.17 10.48 10.48 0 0 0 1.317 6.955 10.045 10.045 0 0 0 5.4 4.418c.504.095.683-.223.683-.494 0-.245-.01-1.052-.014-1.908-2.78.62-3.366-1.21-3.366-1.21a2.711 2.711 0 0 0-1.11-1.5c-.907-.637.07-.621.07-.621.317.044.62.163.885.346.266.183.487.426.647.71.135.253.318.476.538.655a2.079 2.079 0 0 0 2.37.196c.045-.52.27-1.006.635-1.37-2.219-.259-4.554-1.138-4.554-5.07a4.022 4.022 0 0 1 1.031-2.75 3.77 3.77 0 0 1 .096-2.713s.839-.275 2.749 1.05a9.26 9.26 0 0 1 5.004 0c1.906-1.325 2.74-1.05 2.74-1.05.37.858.406 1.828.101 2.713a4.017 4.017 0 0 1 1.029 2.75c0 3.939-2.339 4.805-4.564 5.058a2.471 2.471 0 0 1 .679 1.897c0 1.372-.012 2.477-.012 2.814 0 .272.18.592.687.492a10.05 10.05 0 0 0 5.388-4.421 10.473 10.473 0 0 0 1.313-6.948 10.32 10.32 0 0 0-3.39-6.165A9.847 9.847 0 0 0 12.007 2Z"
+                    clip-rule="evenodd" />
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://huggingface.co/Aalto-Speech-Synthesis/HiFi-Glot" class="list-select" target="_blank">
+                <img class="h-6 w-6" src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" />
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/PupuAI" class="list-select" target="_blank">
+                <img class="h-6 w-6" src="static/logo_pupu.png" />
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+
+    <div class="p-5 md:p-0 mt-16 max-w-screen-xl mx-auto">
+      <div class="p-6" id="home">
+        <div class="mt-8 mb-8">
+          <h1>HiFi-Glot: High-Fidelity Neural Formant Synthesis <br> with Differentiable Resonant Filters</h1>
+        </div>
+
+        <div class="flex gap-2 justify-center flex-wrap">
+          <a href="TBD" target="_blank">
+            <img src="https://img.shields.io/badge/arXiv-Paper-red.svg">
+          </a>
+          <a href="https://github.com/VocodexElysium/HiFi-Glot" target="_blank">
+            <img src="https://img.shields.io/badge/GitHub-Repo-blue">
+          </a>
+          <a href="https://huggingface.co/Aalto-Speech-Synthesis/HiFi-Glot" target="_blank">
+            <img src="https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Model-yellow">
+          </a>
+        </div>
+
+        <div class="mx-auto mt-8 mb-16">
+          <div class="max-w-[900px] mx-auto text-center pb-10 flex flex-col gap-3">
+            <div class="text-sm">
+              <span class="author"><a href="https://www.yichenggu.com/">Yicheng Gu</a><sup>1,2</sup></span>
+              <span class="author">Pablo Pérez Zarazaga<sup>3</sup></span>
+              <span class="author"><a href="https://imwcr.cn/">Chaoren Wang</a><sup>2</sup></span>
+              <span class="author"><a href="https://drwuz.com/">Zhizheng Wu</a><sup>2</sup></span>
+              <br>
+              <span class="author">Gustav Eje Henter<sup>3</sup></span>
+              <span class="author">Zofia Malisz<sup>3</sup></span>
+              <span class="author">Lauri Juvela</a><sup>1</sup></span>
+            </div>
+            <div class="text-sm">
+              <span class="affiliation"><sup>1</sup>
+                <a href="https://www.aalto.fi/en">Aalto University</a>
+              </span>
+              <span class="affiliation"><sup>2</sup>
+                <a href="https://www.cuhk.edu.cn/en">The Chinese University of Hong Kong, Shenzhen</a>
+              </span>
+              <span class="affiliation"><sup>3</sup>
+                <a href="https://www.kth.se/en">KTH Royal Institute of Technology</a>
+              </span>
+            </div>
+          </div>
+
+          <div class="max-w-[900px] mx-auto mt-8 mb-16">
+            <h2>Abstract</h2>
+            <p class="text-p text-justify leading-relaxed [text-align-last:left]">
+              Formant synthesis aims to generate speech with controllable formant structures, enabling precise
+              manipulation of vocal resonance and phonetic features. However, existing formant synthesis approaches
+              often struggle to achieve accurate formant control, leading to unnatural timbre and degraded speech
+              quality. To address this issue, this letter presents HiFi-Glot, an end-to-end neural formant synthesis
+              system that achieves both precise formant control and high-fidelity speech synthesis. Specifically, the
+              proposed model adopts a source-filter architecture inspired by classical formant synthesis, where a neural
+              vocoder generates the glottal excitation signal, and differentiable resonant filters will model the
+              formant to produce the speech waveform. Experiment results demonstrate that our proposed HiFi-Glot model
+              can generate speech with higher perceptual quality and naturalness while having a more precise control
+              over formant frequencies, outperforming industry-standard formant manipulation tools such as Praat.
+            </p>
+          </div>
+
+          <div class="mt-8 mb-8" id="hifiglot-methodology">
+            <h4>What is HiFi-Glot?</h4>
+            <div class="flex mx-auto justify-center max-w-screen-lg py-8">
+              <img src="static/hifiglot_model.png"></img>
+            </div>
+            <p class="text-p text-justify leading-relaxed [text-align-last:left]">
+              HiFi-Glot is an end-to-end neural formant synthesis system that achieves high perceptual quality and
+              precise
+              formant control using a source-filter architecture with differentiable resonant filters. It addresses the
+              unnatural timbre and imperfect source-filter separation often found in legacy tools by utilizing a neural
+              vocoder to generate glottal excitation and a fully differentiable all-pole filter to model vocal tract
+              resonance, enabling interpretable manipulation of parameters such as formants, spectral tilt, and energy.
+              To
+              illustrate the effectiveness of HiFi-Glot, we conduct evaluations on speech parameter manipulation and
+              vocal
+              tract length simulation, demonstrating that it outperforms industry-standard tools like Praat in both
+              speech
+              naturalness and manipulation accuracy.
+            </p>
+
+            <div class="mt-8 mb-8" id="hifiglot-objective">
+              <h4>Speech Parameter Manipulation</h4>
+            </div>
+            <div class="flex mx-auto justify-center max-w-screen-lg py-8">
+              <img src="static/objective-results.png"></img>
+            </div>
+
+            <p class="text-p text-justify leading-relaxed [text-align-last:left]">
+              The above figure shows the manipulation errors for different speech parameters across various
+              scaling factors. For Tilt, Centroid, and Energy, HiFi-Glot consistently outperforms the baseline model,
+              showing lower median error values across all scaling factors. Regarding \(F_0\), HiFi-Glot outperforms
+              the
+              baselines for every scaling factor. For \(F_1\), \(F_2\), and \(F_3\), HiFi-Glot demonstrates clear
+              advantages
+              when the scaling factors are below 1.0. Meanwhile, when the scaling factors are greater than or equal to
+              1.0, HiFi-Glot performs on par with the other baseline systems. These results indicate that our HiFi-Glot
+              model maintains strong manipulation accuracy and robustness, particularly under downward scaling
+              conditions, while achieving comparable performance in upward scaling scenarios.
+            </p>
+
+            <div class="mt-8 mb-8" id="hifiglot-subjective">
+              <h4>Vocal Tract Length Simulation</h4>
+            </div>
+
+            <div class="mt-8 mb-8">
+              <p class="text-p text-justify leading-relaxed [text-align-last:left]">
+                We conduct global formant manipulation to illustrate the robustness of our proposed system. In
+                global formant manipulation, all formants will be globally shifted by a same scaling factor,
+                including: 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3.
+                We use <a href="https://www.fon.hum.uva.nl/praat/">Praat</a> and <a
+                  href="https://arxiv.org/abs/2306.01957">NF HiFi-GAN</a> as baselines, representative
+                samples are shown below.
+              </p>
+            </div>
+
+            <div class="mt-8 mb-8">
+              <div class="mx-auto text-sm text-left rtl:text-right text-gray-900">
+                <table id="copy-synthesis-table" style="width: 100%;">
+                  <thead>
+                    <tr>
+                      <th style="text-align: center; width: 8%;">Scaling Factor</th>
+                      <th style="text-align: center; width: 23%;">GT</th>
+                      <th style="text-align: center; width: 23%;">
+                        Praat
+                      </th>
+                      <th style="text-align: center; width: 23%;">
+                        NF HiFi-GAN<br>
+                        <span style="font-weight: normal;">(Interspeech 2023)</span>
+                      </th>
+                      <th style="text-align: center; width: 23%;">
+                        HiFi-Glot
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Splitter -->
+                    <tr class="0.7">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>0.7</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.7">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.7">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.7">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.7/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="0.8">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>0.8</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.8">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.8">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.8">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.8/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="0.9">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>0.9</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.9">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.9">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="0.9">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/0.9/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="1.0">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>1.0</b>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/01_gt.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.0">
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/02_gt.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.0">
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/03_gt.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.0">
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/04_gt.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.0/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="1.1">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>1.1</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.1">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.1">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.1">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.1/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="1.2">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>1.2</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.2">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.2">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.2">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.2/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <!-- Splitter -->
+                    <tr class="1.3">
+                      <td style="background-color: #f4f4f4;" rowspan="4">
+                        <b>1.3</b>
+                      </td>
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/01_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/01_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/01_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.3">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/02_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/02_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/02_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.3">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/03_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/03_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/03_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                    <tr class="1.3">
+                      <td>
+                        /
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/04_praat.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/04_hifigan.wav">
+                        </audio>
+                      </td>
+                      <td>
+                        <audio controls preload="none">
+                          <source src="data/1.3/04_hifiglot.wav">
+                        </audio>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div id="pagination">
+                  <span class="page-guide">Different Scaling Factors</span>
+                  <br><br>
+
+                  <div id="settingContainer" style="display: inline-block; vertical-align: top;">
+                  </div>
+
+                  <script>
+                    const settings = ["0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"];
+
+                    let selectedSetting = "1.0";
+
+                    const shiftContainer = document.getElementById("settingContainer");
+                    settings.forEach(setting => {
+                      const button = document.createElement("button");
+                      button.textContent = setting;
+                      button.onclick = () => {
+                        selectedSetting = setting;
+                        checkAndNavigate();
+                      };
+                      shiftContainer.appendChild(button);
+                    });
+
+                    function checkAndNavigate() {
+                      if (selectedSetting !== null) {
+                        const page = `${selectedSetting}`;
+                        showVCPage(page);
+                      }
+                    }
+
+                    function showVCPage(page) {
+                      console.log("Navigating to:", page);
+                    }
+                  </script>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        function showVCPage(target) {
+          var rows = document.querySelectorAll("#copy-synthesis-table tbody tr");
+          for (var i = 0; i < rows.length; i++) {
+            rows[i].style.display = 'none';
+            if (rows[i].classList.contains(target)) {
+              rows[i].style.display = '';
+            }
+          }
+        }
+
+        window.onload = function () {
+          showVCPage('1.0');
+        };
+
+      </script>
+
+</body>
+
+<script>
+  let black_overlay = document.getElementById('black_overlay');
+  let enlargeContainer = document.getElementById('enlargeContainer');
+  let closeBtn = document.getElementById('close');
+
+  let toEnlargeImgs = document.getElementsByClassName('toEnlargeImg');
+  for (let toEnlargeImg of toEnlargeImgs) {
+    toEnlargeImg.addEventListener('click', function () {
+      // 获取当前图片的路径
+      let imgUrl = this.src;
+      // 显示黑色遮罩和预览容器
+      black_overlay.style.display = 'block';
+      enlargeContainer.style.display = 'block';
+      let img = new Image();
+      img.src = imgUrl;
+      img.classList.add('enlargePreviewImg');
+      if (closeBtn.nextElementSibling) {
+        enlargeContainer.removeChild(closeBtn.nextElementSibling);
+      }
+      enlargeContainer.appendChild(img);
+    });
+  }
+
+  // 关闭预览
+  closeBtn.addEventListener('click', function () {
+    black_overlay.style.display = 'none';
+    enlargeContainer.style.display = 'none';
+  });
+</script>
+
+<script>
+  MathJax.typesetPromise([document.getElementById('local-math')]);
+</script>
+
+</html>
