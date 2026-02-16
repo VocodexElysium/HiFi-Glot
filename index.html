@@ -230,7 +230,7 @@
               <a href="#hifiglot-objective" class="list-select"><b>Speech Parameter Manipulation</b></a>
             </li>
             <li>
-              <a href="#hifiglot-subjective" class="list-select"><b>Vocal Tract Length Simulation</b></a>
+              <a href="#hifiglot-subjective" class="list-select"><b>Vocal Tract Length Manipulation</b></a>
             </li>
             <li>
               <a href="https://github.com/VocodexElysium/HiFi-Glot" class="list-select" target="_blank">
@@ -265,7 +265,7 @@
         </div>
 
         <div class="flex gap-2 justify-center flex-wrap">
-          <a href="TBD" target="_blank">
+          <a href="https://arxiv.org/abs/2409.14823" target="_blank">
             <img src="https://img.shields.io/badge/arXiv-Paper-red.svg">
           </a>
           <a href="https://github.com/VocodexElysium/HiFi-Glot" target="_blank">
@@ -304,23 +304,24 @@
           <div class="max-w-[900px] mx-auto mt-8 mb-16">
             <h2>Abstract</h2>
             <p class="text-p text-justify leading-relaxed [text-align-last:left]">
-              Formant synthesis aims to generate speech with controllable formant structures, enabling precise
-              manipulation of vocal resonance and phonetic features. However, existing formant synthesis approaches
-              often struggle to achieve accurate formant control, leading to unnatural timbre and degraded speech
-              quality. To address this issue, this letter presents HiFi-Glot, an end-to-end neural formant synthesis
-              system that achieves both precise formant control and high-fidelity speech synthesis. Specifically, the
-              proposed model adopts a source-filter architecture inspired by classical formant synthesis, where a neural
-              vocoder generates the glottal excitation signal, and differentiable resonant filters will model the
-              formant to produce the speech waveform. Experiment results demonstrate that our proposed HiFi-Glot model
-              can generate speech with higher perceptual quality and naturalness while having a more precise control
-              over formant frequencies, outperforming industry-standard formant manipulation tools such as Praat.
+              Formant synthesis aims to generate speech with controllable formant structures, enabling precise control
+              of vocal resonance and phonetic features. However, while existing formant synthesis approaches enable
+              precise formant manipulation, they often yield an impoverished speech signal by failing to capture the
+              complex co-occurring acoustic cues essential for naturalness. To address this issue, this letter presents
+              HiFi-Glot, an end-to-end neural formant synthesis system that achieves both precise formant control and
+              high-fidelity speech synthesis. Specifically, the proposed model adopts a source-filter architecture
+              inspired by classical formant synthesis, where a neural vocoder generates the glottal excitation signal,
+              and differentiable resonant filters model the formants to produce the speech waveform. Experiment results
+              demonstrate that our proposed HiFi-Glot model can generate speech with higher perceptual quality and
+              naturalness while exhibiting a more precise control over formant frequencies, outperforming
+              industry-standard formant manipulation tools such as Praat.
             </p>
           </div>
 
           <div class="mt-8 mb-8" id="hifiglot-methodology">
             <h4>What is HiFi-Glot?</h4>
             <div class="flex mx-auto justify-center max-w-screen-lg py-8">
-              <img src="static/hifiglot_model.png"></img>
+              <img src="static/model.png"></img>
             </div>
             <p class="text-p text-justify leading-relaxed [text-align-last:left]">
               HiFi-Glot is an end-to-end neural formant synthesis system that achieves high perceptual quality and
@@ -347,15 +348,26 @@
             <p class="text-p text-justify leading-relaxed [text-align-last:left]">
               The above figure shows the manipulation errors for different speech parameters across various
               scaling factors. For Tilt, Centroid, and Energy, HiFi-Glot consistently outperforms the baseline model,
-              showing lower median error values across all scaling factors. Regarding \(F_0\), HiFi-Glot outperforms
-              the
-              baselines for every scaling factor. For \(F_1\), \(F_2\), and \(F_3\), HiFi-Glot demonstrates clear
-              advantages
-              when the scaling factors are below 1.0. Meanwhile, when the scaling factors are greater than or equal to
-              1.0, HiFi-Glot performs on par with the other baseline systems. These results indicate that our HiFi-Glot
-              model maintains strong manipulation accuracy and robustness, particularly under downward scaling
-              conditions, while achieving comparable performance in upward scaling scenarios.
+              showing lower median error values across all scaling factors. Regarding F0, HiFi-Glot outperformed the
+              baselines across most scaling factors. The only exception is at the 0.7 scale, where it performed
+              comparably to NFS-HiFiGAN, though it remained superior to Praat. For F1, F2, and F3, HiFi-Glot
+              demonstrated clear advantages when the scaling factors were below 1.0. Meanwhile, when
+              the scaling factors were greater than or equal to 1.0, HiFi-Glot performed on par with
+              the NFS-HiFiGAN baseline while consistently outperforming Praat. Overall, these results validated the
+              effectiveness of the proposed HiFi-Glot model, highlighting its exceptional accuracy in downward scaling
+              and competitive performance in upward scaling.
             </p>
+            <br>
+
+            <div class="notion-callout">
+              <div class="notion-callout-icon">💡</div>
+              <div class="notion-callout-text">
+                Note that the Praat baseline benefits from access to the original excitation signal and the LPC
+                envelope, and it simply performs LPC copy-synthesis at a unit-scale (1.0) modification. In contrast,
+                neural methods need to generate signals directly from the speech parameters; thus, a performance bias
+                exists.
+              </div>
+            </div>
 
             <div class="mt-8 mb-8" id="hifiglot-subjective">
               <h4>Vocal Tract Length Simulation</h4>
@@ -367,7 +379,7 @@
                 global formant manipulation, all formants will be globally shifted by a same scaling factor,
                 including: 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3.
                 We use <a href="https://www.fon.hum.uva.nl/praat/">Praat</a> and <a
-                  href="https://arxiv.org/abs/2306.01957">NF HiFi-GAN</a> as baselines, representative
+                  href="https://arxiv.org/abs/2306.01957">NFS-HiFiGAN</a> as baselines, representative
                 samples are shown below.
               </p>
             </div>
@@ -383,7 +395,7 @@
                         Praat
                       </th>
                       <th style="text-align: center; width: 23%;">
-                        NF HiFi-GAN<br>
+                        NFS-HiFiGAN<br>
                         <span style="font-weight: normal;">(Interspeech 2023)</span>
                       </th>
                       <th style="text-align: center; width: 23%;">
